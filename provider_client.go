@@ -180,6 +180,38 @@ type RequestOpts struct {
 	ErrorContext error
 }
 
+type RequestOptions interface {
+	// Knows how to render particular options into POST data.
+	Body() io.Reader
+
+	// Knows all headers required for request.
+	Headers() map[string]string
+
+	// Knows how to extract useful data from response.
+	ResponseAttrs(*http.Response) map[string]string
+}
+
+func (client *ProviderClient) Request2(method, url string, options RequestOptions) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, options.Body())
+	if err != nil {
+		return nil, err
+	}
+
+	// get latest token from client
+	for k, v := range client.AuthenticatedHeaders() {
+		req.Header.Set(k, v)
+	}
+
+	for k, v := range options.Headers() {
+		req.Header.Set(k, v)
+	}
+
+	// Issue the request.
+	return client.HTTPClient.Do(req)
+
+	// ommiting exit-code checking and reconnection for brievity
+}
+
 var applicationJSON = "application/json"
 
 // Request performs an HTTP request using the ProviderClient's current HTTPClient. An authentication

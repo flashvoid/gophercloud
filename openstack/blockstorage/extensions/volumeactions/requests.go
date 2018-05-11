@@ -1,8 +1,76 @@
 package volumeactions
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+
 	"github.com/gophercloud/gophercloud"
 )
+
+type AttachOpts struct {
+	microversion string
+
+	headers map[string]string
+
+	// The mountpoint of this volume.
+	MountPoint string `json:"mountpoint,omitempty"`
+
+	// The nova instance ID, can't set simultaneously with HostName.
+	InstanceUUID string `json:"instance_uuid,omitempty"`
+
+	// The hostname of baremetal host, can't set simultaneously with InstanceUUID.
+	HostName string `json:"host_name,omitempty"`
+
+	// Mount mode of this volume.
+	Mode AttachMode `json:"mode,omitempty"`
+}
+
+// implements gophercloud.RequestOptions
+func (o AttachOpts) Body() io.Reader {
+	return o.body
+}
+
+// implements gophercloud.RequestOptions
+func (o AttachOpts) Headers() map[string]string {
+	return o.headers
+}
+
+// implements gophercloud.RequestOptions
+func (o AttachOpts) ResponseAttrs(r *http.Response) map[string]string {
+	// can unmarshal into custom struct here
+	// can analyze response headers ... etc.
+
+	// or can just return nil of request doesn't care much.
+	return nil
+}
+
+// Validate prepares request options. Does initialization of fields and sanity.
+// Don't forget to call before passing down to request.
+func (o *AttachOpts) Validate() error {
+	b, err := json.Marshal(o)
+	if err != nil {
+		return err
+	}
+
+	o.body = bytes.NewReader(b)
+
+	o.headers = map[string]string{
+		"Content-Type: application/json",
+	}
+
+	if o.microversion != "" {
+		o.headers["OpenStack-API-Version"] = "volume " + o.microversion
+	}
+
+	return nil
+}
+
+func Attach2(client *gophercloud.ServiceClient, id string, opts AttachOpts) (map[string]string, error) {
+	resp, err := client.Post2(actionURL(client, id), opts)
+	return opts.ResponseAttrs(resp), err
+}
 
 // AttachOptsBuilder allows extensions to add additional parameters to the
 // Attach request.
