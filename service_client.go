@@ -121,6 +121,14 @@ func (client *ServiceClient) Head(url string, opts *RequestOpts) (*http.Response
 	return client.Request("HEAD", url, opts)
 }
 
+func (client *ServiceClient) Get2(url string, opts RequestOptions) (*http.Response, error) {
+	return client.ProviderClient.Request2("GET", url, opts)
+}
+
+func (client *ServiceClient) Post2(url string, opts RequestOptions) (*http.Response, error) {
+	return client.ProviderClient.Request2("POST", url, opts)
+}
+
 func (client *ServiceClient) setMicroversionHeader(opts *RequestOpts) {
 	switch client.Type {
 	case "compute":
